@@ -65,8 +65,15 @@ def create_vc_fn(model, hps, speaker_ids):
         if input_audio is None:
             return "You need to record or upload an audio", None
         sampling_rate, audio = input_audio
-        original_speaker_id = speaker_ids[original_speaker]
-        target_speaker_id = speaker_ids[target_speaker]
+
+        if original_speaker.isdigit():
+            original_speaker_id = int(original_speaker)
+        else:
+            original_speaker_id = speaker_ids[original_speaker]
+        if target_speaker.isdigit():
+            target_speaker_id = int(target_speaker)
+        else:
+            target_speaker_id = speaker_ids[target_speakerker]
 
         audio = (audio / np.iinfo(audio.dtype).max).astype(np.float32)
         if len(audio.shape) > 1:
@@ -93,6 +100,28 @@ def create_vc_fn(model, hps, speaker_ids):
     
 
 # forked from gradio
+def audio_from_file(filename, crop_min=0, crop_max=100):
+    try:
+        audio = AudioSegment.from_file(filename)
+    except FileNotFoundError as e:
+        isfile = Path(filename).is_file()
+        msg = (
+            f"Cannot load audio from file: `{'ffprobe' if isfile else filename}` not found."
+            + " Please install `ffmpeg` in your system to use non-WAV audio file formats"
+            " and make sure `ffprobe` is in your PATH."
+            if isfile
+            else ""
+        )
+        raise RuntimeError(msg) from e
+    if crop_min != 0 or crop_max != 100:
+        audio_start = len(audio) * crop_min / 100
+        audio_end = len(audio) * crop_max / 100
+        audio = audio[audio_start:audio_end]
+    data = np.array(audio.get_array_of_samples())
+    if audio.channels > 1:
+        data = data.reshape(-1, audio.channels)
+    return (audio.frame_rate, data)
+
 
 def audio_to_file(sample_rate, data, filename):
     data = convert_to_16_bit_wav(data)
@@ -173,11 +202,13 @@ if __name__ == "__main__":
     if filename == "":
         filename = f"out_{int(time.time())}.wav"
     
+    # TODO: better console output
     if args.tts != "":
         # tts_fn(text, speaker, language, speed):
         msg, (sample_rate, o) = tts_fn(args.tts, out_speaker, args.lang, np.clip(float(args.speed), 0.1, 5.))
         audio_to_file(sample_rate, o, filename)
         print(msg)
     else: 
-        pass
-        # TODO: VOICE CONVERSION
+        msg, (sample_rate, o) = vc_fn(in_speaker, out_speaker, audio_from_file(args.cv_input_file), None)
+        audio_to_file(sample_rate, o, filename)
+        print(msg)
