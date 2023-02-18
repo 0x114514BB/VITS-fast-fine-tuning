@@ -73,3 +73,13 @@ inference
 ```
 4. 运行 `inference.exe`, 浏览器会自动弹出窗口.
 
+## 本地运行与推理(无GUI，适用于Linux服务器):
+
+0. 记得下载微调好的模型和config文件，并确保服务器已安装CMake，gcc和python3！
+1. Clone本仓库
+2. 把下载的模型和config文件放在本文件夹下, 确保模型的文件名为 `G_latest.pth` , config文件名为 `finetune_speaker.json`(也可以修改NOGUI_inference.py指定文件)
+3. 安装python依赖所需的扩展库libsndfile1, ubuntu下为`apt install libsndfile1`
+4. 使用`pip install -r requirements_infer_nogui.txt`安装依赖
+5. 编译单调对齐扩展模块`monotonic_align`: `cd monotonic_align && python3 setup.py build_ext --inplace`
+6. 一切准备就绪，运行NOGUI_inference.py进行语音合成或声线转换~
+PS：如果你的服务器是Windows，所需步骤类似，编译器可使用msvc替换
